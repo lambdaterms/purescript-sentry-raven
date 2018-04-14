@@ -5,6 +5,8 @@ import Prelude
 import Control.Monad.Eff (Eff, kind Effect)
 import Control.Monad.Eff.Console (CONSOLE, log, logShow)
 import Control.Monad.Eff.Uncurried (EffFn2, runEffFn2, EffFn1, runEffFn1)
+import Node.Process (PROCESS, lookupEnv)
+import Data.Maybe (maybe)
 import Debug.Trace (traceAnyA)
 import Unsafe.Coerce (unsafeCoerce)
 
@@ -27,11 +29,13 @@ captureMessage r msg = runEffFn2 captureMessageImpl r msg
 
 inContext ∷ ∀ a eff. Raven → Eff (raven ∷ RAVEN | eff) a → Eff (raven ∷ RAVEN | eff) a
 inContext r eff = runEffFn2 inContextImpl r eff
+main ∷ forall e. Eff (console ∷ CONSOLE, process ∷ PROCESS, raven ∷ RAVEN | e) Unit
+main = do
+  dsn ← (Dsn <<< maybe "" id) <$> lookupEnv "SENTRY_DSN"
 
 foreign import throw ∷ ∀ eff. Eff eff Int
 
 
-data Maybe a = Nothing | Just a
 
 -- named args - phils trick
 -- f u =
@@ -44,9 +48,6 @@ data Maybe a = Nothing | Just a
 -- u = f _{ email = Just "new", age = Just 8 }
 
 
-main :: forall e. Eff (console :: CONSOLE, raven ∷ RAVEN | e) Unit
-main = do
-  r ← raven (Dsn "https://21351561203e42bebb5113a2798b726d@sentry.io/1188784")
   captureMessage r ("TEST MESSAGE")
   -- x ← y r
   x ← inContext r throw
